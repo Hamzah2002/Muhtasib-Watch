@@ -7,7 +7,7 @@ logging.basicConfig(level=logging.INFO)
 
 def unfold_headers(email_headers):
     """
-    Unfold headers by joining continuation lines.
+    unfold headers by joining continuation lines.
     Continuation lines start with whitespace (space or tab).
     """
     unfolded_headers = ""
