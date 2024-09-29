@@ -117,17 +117,3 @@ class AttachmentScanner:
             return all([result.scheme, result.netloc])
         except Exception:
             return False
-
-
-# Example usage:
-if __name__ == "__main__":
-    # Simulated input for URLs (you can manually enter them for testing)
-    attachment_urls = input("Enter the attachment URLs, separated by commas: ").split(',')
-
-    # Initialize the attachment scanner and analyze attachments
-    scanner = AttachmentScanner()
-    attachment_results = scanner.analyze_attachments([url.strip() for url in attachment_urls])
-
-    # Print the scan results
-    for result in attachment_results:
-        print(result)
