@@ -1,7 +1,7 @@
 # main.py
 import sys
 from PyQt5.QtWidgets import QApplication
-from ui import Ui_MainWindow  # Import the separate UI file
+from ui import Ui_MainWindow  # Import the separate UI file with navigation setup
 import dkim_spf_validator
 import attachment_scanner
 import url_checker
@@ -14,12 +14,13 @@ class MuhtasibWatch(Ui_MainWindow):
         self.connectUI()  # Connect the UI buttons to logic
 
     def connectUI(self):
-        # Connect buttons to functions
-        self.check_url_button.clicked.connect(self.check_url)
-        self.check_dkim_button.clicked.connect(self.check_dkim_spf)
-        self.scan_attachment_button.clicked.connect(self.scan_attachments)
+        # Connect buttons on each specific page to their respective functions
+        self.check_url_button.clicked.connect(self.check_url)  # URL Checker Page
+        self.check_dkim_button.clicked.connect(self.check_dkim_spf)  # DKIM/SPF Page
+        self.scan_attachment_button.clicked.connect(self.scan_attachments)  # Attachment Scanning Page
 
     def check_url(self):
+        # URL Checker Functionality
         url = self.url_input.text().strip()
         if url:
             # Get the redirection chain and final URL from expand_url()
@@ -35,19 +36,21 @@ class MuhtasibWatch(Ui_MainWindow):
                 # Check the final URL using VirusTotal
                 result = url_checker.check_url_virustotal(final_url)
 
-                # Show the full redirection and VirusTotal check result in the UI
-                self.results_area.setText(f"URL Check Result:\n\n{redirection_text}{result}")
+                # Display the full redirection and VirusTotal check result in the UI (specific results area for URL checker)
+                self.url_result_area.setText(f"URL Check Result:\n\n{redirection_text}{result}")
             else:
-                self.results_area.setText(f"Invalid or suspicious redirections for URL: {url}")
+                self.url_result_area.setText(f"Invalid or suspicious redirections for URL: {url}")
 
     def check_dkim_spf(self):
+        # DKIM/SPF Analysis Functionality
         dkim_headers = self.dkim_input.toPlainText().strip()
         if dkim_headers:
             # Run DKIM and SPF analysis on the input headers
             result = dkim_spf_validator.analyze_email(dkim_headers)
-            self.results_area.setText(f"DKIM/SPF Analysis Result:\n\n{result}")
+            self.dkim_result_area.setText(f"DKIM/SPF Analysis Result:\n\n{result}")
 
     def scan_attachments(self):
+        # Attachment Scanning Functionality
         # Collect the URLs from the text area, split by commas, and clean up whitespace
         attachment_urls = self.attachment_input.toPlainText().strip().split(',')
         attachment_urls = [url.strip() for url in attachment_urls if url.strip()]
@@ -56,7 +59,7 @@ class MuhtasibWatch(Ui_MainWindow):
             # Run the attachment analysis
             results = self.attachment_scanner.analyze_attachments(attachment_urls)
 
-            # Format the results to display in the text area
+            # Format the results to display in the text area for attachments
             result_text = "Attachment Scan Results:\n\n"
             for result in results:
                 result_text += f"URL: {result.get('url', 'N/A')}\n"
@@ -65,7 +68,7 @@ class MuhtasibWatch(Ui_MainWindow):
                 result_text += f"Details: {result['details']}\n\n"
 
             # Display the formatted attachment scan results
-            self.results_area.setText(result_text)
+            self.attachment_result_area.setText(result_text)
 
 
 if __name__ == '__main__':
