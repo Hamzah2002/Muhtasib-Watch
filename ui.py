@@ -61,6 +61,7 @@ class Ui_MainWindow(QMainWindow):
         self.navigation_bar.addItem("URL Checker")
         self.navigation_bar.addItem("DKIM/SPF Analysis")
         self.navigation_bar.addItem("Attachment Scanning")
+        self.navigation_bar.addItem("Phishing Analysis")  # New item for phishing analysis
         self.navigation_bar.addItem("About")
         self.navigation_bar.setStyleSheet("QListWidget { padding: 10px; }")
 
@@ -71,12 +72,14 @@ class Ui_MainWindow(QMainWindow):
         self.url_checker_page = self.create_url_checker_page()
         self.dkim_spf_page = self.create_dkim_spf_page()
         self.attachment_scanner_page = self.create_attachment_scanner_page()
+        self.phishing_analysis_page = self.create_phishing_analysis_page()  # New page for phishing analysis
         self.about_page = self.create_about_page()
 
         # Add pages to the stacked widget
         self.stacked_widget.addWidget(self.url_checker_page)
         self.stacked_widget.addWidget(self.dkim_spf_page)
         self.stacked_widget.addWidget(self.attachment_scanner_page)
+        self.stacked_widget.addWidget(self.phishing_analysis_page)  # Add new phishing analysis page
         self.stacked_widget.addWidget(self.about_page)
 
         # Add navigation and stacked widget to the main layout
@@ -93,107 +96,101 @@ class Ui_MainWindow(QMainWindow):
 
     def create_url_checker_page(self):
         """
-        Create the page for URL Checker functionality with a bold header.
+        Create the URL Checker page.
         """
         page = QWidget()
         layout = QVBoxLayout()
-
-        # Create the label with a bold font
         self.url_label = QLabel("Enter URLs (comma-separated):")
-        url_label_font = QFont()
-        url_label_font.setBold(True)
-        url_label_font.setPointSize(11)  # Set a slightly larger font size
-        self.url_label.setFont(url_label_font)
-
-        self.url_input = QTextEdit()
-        self.url_input.setFixedHeight(150)
+        self.url_label.setFont(QFont("Arial", 11, QFont.Bold))
+        self.url_input = QLineEdit()  # Changed to QLineEdit for single-line URL input
         self.url_input.setPlaceholderText("e.g., https://example.com, https://another.com")
-
         self.check_url_button = QPushButton("Check URLs")
-        self.check_url_button.setIcon(QIcon("resources/url_icon.png"))
-        self.check_url_button.setFixedWidth(150)
         self.url_result_area = QTextEdit()
         self.url_result_area.setFixedHeight(300)
-
         layout.addWidget(self.url_label)
         layout.addWidget(self.url_input)
         layout.addWidget(self.check_url_button)
         layout.addWidget(self.url_result_area)
-        layout.setContentsMargins(50, 20, 50, 20)
-
         page.setLayout(layout)
         return page
 
     def create_dkim_spf_page(self):
+        """
+        Create the DKIM/SPF Analysis page.
+        """
         page = QWidget()
         layout = QVBoxLayout()
-
-        # Create the label with a bold font
         self.dkim_label = QLabel("Enter DKIM/SPF Headers:")
-        dkim_label_font = QFont()
-        dkim_label_font.setBold(True)
-        dkim_label_font.setPointSize(11)  # Set a slightly larger font size
-        self.dkim_label.setFont(dkim_label_font)
-
+        self.dkim_label.setFont(QFont("Arial", 11, QFont.Bold))
         self.dkim_input = QTextEdit()
         self.dkim_input.setFixedHeight(150)
         self.check_dkim_button = QPushButton("Check DKIM/SPF")
-        self.check_dkim_button.setIcon(QIcon("resources/headers_icon.png"))
-        self.check_dkim_button.setFixedWidth(150)
         self.dkim_result_area = QTextEdit()
         self.dkim_result_area.setFixedHeight(300)
-
         layout.addWidget(self.dkim_label)
         layout.addWidget(self.dkim_input)
         layout.addWidget(self.check_dkim_button)
         layout.addWidget(self.dkim_result_area)
-        layout.setContentsMargins(50, 20, 50, 20)
-
         page.setLayout(layout)
         return page
 
     def create_attachment_scanner_page(self):
+        """
+        Create the Attachment Scanning page.
+        """
         page = QWidget()
         layout = QVBoxLayout()
-
-        # Create the label with a bold font
         self.attachment_label = QLabel("Enter Attachment URLs (comma-separated):")
-        attachment_label_font = QFont()
-        attachment_label_font.setBold(True)
-        attachment_label_font.setPointSize(11)  # Set a slightly larger font size
-        self.attachment_label.setFont(attachment_label_font)
-
+        self.attachment_label.setFont(QFont("Arial", 11, QFont.Bold))
         self.attachment_input = QTextEdit()
         self.attachment_input.setFixedHeight(150)
         self.attachment_input.setPlaceholderText("e.g., https://example.com/file1, https://another.com/file2")
-
         self.scan_attachment_button = QPushButton("Scan Attachments")
-        self.scan_attachment_button.setIcon(QIcon("resources/scan_icon.png"))
-        self.scan_attachment_button.setFixedWidth(150)
         self.attachment_result_area = QTextEdit()
         self.attachment_result_area.setFixedHeight(300)
-
         layout.addWidget(self.attachment_label)
         layout.addWidget(self.attachment_input)
         layout.addWidget(self.scan_attachment_button)
         layout.addWidget(self.attachment_result_area)
-        layout.setContentsMargins(50, 20, 50, 20)
+        page.setLayout(layout)
+        return page
 
+    def create_phishing_analysis_page(self):
+        """
+        Create the Phishing Analysis page for analyzing email text content.
+        """
+        page = QWidget()
+        layout = QVBoxLayout()
+        self.phishing_label = QLabel("Enter Email Content for Phishing Analysis:")
+        self.phishing_label.setFont(QFont("Arial", 11, QFont.Bold))
+        self.email_input = QTextEdit()
+        self.email_input.setFixedHeight(200)
+        self.check_phishing_button = QPushButton("Analyze Email")
+        self.phishing_result_area = QTextEdit()
+        self.phishing_result_area.setFixedHeight(300)
+        layout.addWidget(self.phishing_label)
+        layout.addWidget(self.email_input)
+        layout.addWidget(self.check_phishing_button)
+        layout.addWidget(self.phishing_result_area)
         page.setLayout(layout)
         return page
 
     def create_about_page(self):
+        """
+        Create the About page.
+        """
         page = QWidget()
         layout = QVBoxLayout()
         about_text = QLabel("Muhtasib Watch\n\nAn Email Security Analyzer Application.\n\nVersion 1.0\n\nCreated by Mouhamad Ismail.")
         about_text.setFont(QFont("Arial", 14, QFont.Bold))
         layout.addWidget(about_text)
-        layout.setContentsMargins(50, 50, 50, 50)
-
         page.setLayout(layout)
         return page
 
     def display_page(self, index):
+        """
+        Display the selected page based on the index.
+        """
         self.stacked_widget.setCurrentIndex(index)
 
 
