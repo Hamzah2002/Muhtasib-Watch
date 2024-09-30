@@ -95,14 +95,11 @@ class Ui_MainWindow(QMainWindow):
         self.navigation_bar.currentRowChanged.connect(self.display_page)
 
     def create_url_checker_page(self):
-        """
-        Create the URL Checker page.
-        """
         page = QWidget()
         layout = QVBoxLayout()
         self.url_label = QLabel("Enter URLs (comma-separated):")
         self.url_label.setFont(QFont("Arial", 11, QFont.Bold))
-        self.url_input = QLineEdit()  # Changed to QLineEdit for single-line URL input
+        self.url_input = QLineEdit()
         self.url_input.setPlaceholderText("e.g., https://example.com, https://another.com")
         self.check_url_button = QPushButton("Check URLs")
         self.url_result_area = QTextEdit()
@@ -115,9 +112,6 @@ class Ui_MainWindow(QMainWindow):
         return page
 
     def create_dkim_spf_page(self):
-        """
-        Create the DKIM/SPF Analysis page.
-        """
         page = QWidget()
         layout = QVBoxLayout()
         self.dkim_label = QLabel("Enter DKIM/SPF Headers:")
@@ -146,19 +140,21 @@ class Ui_MainWindow(QMainWindow):
         self.attachment_input.setFixedHeight(150)
         self.attachment_input.setPlaceholderText("e.g., https://example.com/file1, https://another.com/file2")
         self.scan_attachment_button = QPushButton("Scan Attachments")
+
+        # **New Gmail Attachment Button**
+        self.download_gmail_button = QPushButton("Download Gmail Attachments")  # New button for Gmail attachments
+
         self.attachment_result_area = QTextEdit()
         self.attachment_result_area.setFixedHeight(300)
         layout.addWidget(self.attachment_label)
         layout.addWidget(self.attachment_input)
         layout.addWidget(self.scan_attachment_button)
+        layout.addWidget(self.download_gmail_button)  # Add the new Gmail button to the layout
         layout.addWidget(self.attachment_result_area)
         page.setLayout(layout)
         return page
 
     def create_phishing_analysis_page(self):
-        """
-        Create the Phishing Analysis page for analyzing email text content.
-        """
         page = QWidget()
         layout = QVBoxLayout()
         self.phishing_label = QLabel("Enter Email Content for Phishing Analysis:")
@@ -176,27 +172,23 @@ class Ui_MainWindow(QMainWindow):
         return page
 
     def create_about_page(self):
-        """
-        Create the About page.
-        """
         page = QWidget()
         layout = QVBoxLayout()
-        about_text = QLabel("Muhtasib Watch\n\nAn Email Security Analyzer Application.\n\nVersion 1.0\n\nCreated by Mouhamad Ismail.")
+        about_text = QLabel(
+            "Muhtasib Watch\n\nAn Email Security Analyzer Application.\n\nVersion 1.0\n\nCreated by Mouhamad Ismail.")
         about_text.setFont(QFont("Arial", 14, QFont.Bold))
         layout.addWidget(about_text)
         page.setLayout(layout)
         return page
 
     def display_page(self, index):
-        """
-        Display the selected page based on the index.
-        """
         self.stacked_widget.setCurrentIndex(index)
 
 
 # Run the application
 if __name__ == "__main__":
     import sys
+
     app = QApplication(sys.argv)
     window = Ui_MainWindow()
     window.show()
