@@ -1,37 +1,32 @@
 import sys
+import uuid
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QApplication
-from ui import Ui_MainWindow  # Import the separate UI file
+from ui import Ui_MainWindow
 import dkim_spf_validator
 import attachment_scanner
 import url_checker
-from src.phishing_analyzer import PhishingAnalyzer  # Import the PhishingAnalyzer class
-from gmail_downloader import authenticate_gmail, list_gmail_attachments, download_gmail_attachment  # Gmail integration
+from src.phishing_analyzer import PhishingAnalyzer
+from gmail_downloader import authenticate_gmail, list_gmail_attachments, download_gmail_attachment, extract_gmail_ids
 
 
 class AttachmentScannerWorker(QThread):
-    """
-    Worker thread to run the attachment scanning process without freezing the main UI.
-    """
-    update_result = pyqtSignal(str)  # Signal to send results back to the main thread
+    update_result = pyqtSignal(str)
 
-    def __init__(self, scanner, attachment_urls, local_files=None):
+    def __init__(self, scanner, attachment_urls=None, local_files=None):
         super().__init__()
-        self.scanner = scanner  # Reference to the AttachmentScanner instance
-        self.attachment_urls = attachment_urls  # List of URLs to scan
-        self.local_files = local_files  # Optional: List of local file paths to scan
+        self.scanner = scanner
+        self.attachment_urls = attachment_urls if attachment_urls else []
+        self.local_files = local_files if local_files else []
 
     def run(self):
         try:
             result_text = "Attachment Scan Results:\n\n"
 
-            # If there are local files, scan them first
-            if self.local_files:
-                for file in self.local_files:
-                    scan_result = self.scanner.scan_file_with_clamav(file)
-                    result_text += f"File: {file}\nStatus: {scan_result['status']}\nDetails: {scan_result['details']}\n\n"
+            for file in self.local_files:
+                scan_result = self.scanner.scan_file_with_clamav(file)
+                result_text += f"File: {file}\nStatus: {scan_result['status']}\nDetails: {scan_result['details']}\n\n"
 
-            # If there are URLs, scan them as well
             if self.attachment_urls:
                 results = self.scanner.analyze_attachments(self.attachment_urls)
                 for result in results:
@@ -40,45 +35,29 @@ class AttachmentScannerWorker(QThread):
                     result_text += f"Status: {result['status']}\n"
                     result_text += f"Details: {result['details']}\n\n"
 
-            # Emit the formatted result text back to the main thread
             self.update_result.emit(result_text)
         except Exception as e:
             self.update_result.emit(f"Error during attachment scanning: {str(e)}")
 
 
 class MuhtasibWatch(Ui_MainWindow):
-    """
-    Main application class that handles UI interactions and integrates functionality.
-    """
-
     def __init__(self):
         super().__init__()
         try:
-            print("Initializing application components...")
-            self.attachment_scanner = attachment_scanner.AttachmentScanner()  # Initialize the AttachmentScanner
-            print("Attachment scanner initialized successfully.")
-
-            self.phishing_analyzer = PhishingAnalyzer("models/phishing_model.pkl",
-                                                      "models/vectorizer.pkl")  # Load the phishing detection model
-            print("Phishing analyzer initialized successfully.")
-
-            self.scan_worker = None  # Placeholder for the threading worker
-            self.connectUI()  # Connect the UI buttons to the respective logic
-            print("UI components connected successfully.")
+            self.attachment_scanner = attachment_scanner.AttachmentScanner()
+            self.phishing_analyzer = PhishingAnalyzer("models/phishing_model.pkl", "models/vectorizer.pkl")
+            self.scan_worker = None
+            self.connectUI()
         except Exception as e:
             print(f"Error initializing application components: {e}")
 
     def connectUI(self):
-        """
-        Connect the buttons in the UI to their corresponding functions.
-        """
         try:
-            self.check_url_button.clicked.connect(self.check_url)  # URL Checker Page
-            self.check_dkim_button.clicked.connect(self.check_dkim_spf)  # DKIM/SPF Page
-            self.scan_attachment_button.clicked.connect(self.scan_attachments)  # Attachment Scanning Page
-            self.check_phishing_button.clicked.connect(self.check_phishing)  # Phishing Analysis Page
-            self.download_gmail_button.clicked.connect(self.download_gmail_attachments)  # Gmail Attachment Download
-            print("All UI buttons connected to functions.")
+            self.check_url_button.clicked.connect(self.check_url)
+            self.check_dkim_button.clicked.connect(self.check_dkim_spf)
+            self.scan_attachment_button.clicked.connect(self.scan_attachments)
+            self.check_phishing_button.clicked.connect(self.check_phishing)
+            self.download_gmail_button.clicked.connect(self.download_gmail_attachments)
         except Exception as e:
             print(f"Error in connecting UI components: {e}")
 
@@ -99,7 +78,6 @@ class MuhtasibWatch(Ui_MainWindow):
             else:
                 self.url_result_area.setText("Please enter a valid URL.")
         except Exception as e:
-            print(f"Error in check_url: {e}")
             self.url_result_area.setText(f"Error in URL checking: {str(e)}")
 
     def check_dkim_spf(self):
@@ -113,14 +91,12 @@ class MuhtasibWatch(Ui_MainWindow):
 
     def scan_attachments(self):
         try:
-            self.attachment_result_area.setText(
-                "Sandboxing... Please wait.\nThis may take a few moments depending on the file size and type.")
-            attachment_urls = self.attachment_input.toPlainText().strip().split(
-                ',')  # `QTextEdit` uses `.toPlainText()`
+            self.attachment_result_area.setText("Sandboxing... Please wait.\nThis may take a few moments depending on the file size and type.")
+            attachment_urls = self.attachment_input.toPlainText().strip().split(',')
             attachment_urls = [url.strip() for url in attachment_urls if url.strip()]
 
             if attachment_urls:
-                self.scan_worker = AttachmentScannerWorker(self.attachment_scanner, attachment_urls)
+                self.scan_worker = AttachmentScannerWorker(self.attachment_scanner, attachment_urls=attachment_urls)
                 self.scan_worker.update_result.connect(self.display_scan_results)
                 self.scan_worker.start()
         except Exception as e:
@@ -128,6 +104,26 @@ class MuhtasibWatch(Ui_MainWindow):
 
     def download_gmail_attachments(self):
         try:
+            gmail_input = self.attachment_input.toPlainText().strip()
+            gmail_urls = [url.strip() for url in gmail_input.split(',') if url.strip()]
+
+            if any("mail.google.com" in url for url in gmail_urls):
+                service = authenticate_gmail()
+                for url in gmail_urls:
+                    msg_id, attachment_id = extract_gmail_ids(url)
+                    if msg_id and attachment_id:
+                        save_path = f"downloads/{uuid.uuid4().hex}_attachment.dat"
+                        local_file = download_gmail_attachment(service, 'me', msg_id, attachment_id, save_path)
+                        if local_file:
+                            self.attachment_result_area.setText(f"Successfully downloaded: {local_file}")
+                            scan_result = self.attachment_scanner.scan_file_with_clamav(local_file)
+                            self.display_scan_results(scan_result)
+                        else:
+                            self.attachment_result_area.setText(f"Failed to download attachment from Gmail link: {url}")
+                    else:
+                        self.attachment_result_area.setText(f"Invalid Gmail link: {url}.")
+                return
+
             service = authenticate_gmail()
             attachments = list_gmail_attachments(service, user_id='me', query='has:attachment')
 
@@ -138,11 +134,9 @@ class MuhtasibWatch(Ui_MainWindow):
             local_files = []
             for attachment in attachments:
                 save_path = f"downloads/{attachment['filename']}"
-                local_files.append(
-                    download_gmail_attachment(service, 'me', attachment['message_id'], attachment['attachment_id'],
-                                              save_path))
+                local_files.append(download_gmail_attachment(service, 'me', attachment['message_id'], attachment['attachment_id'], save_path))
 
-            self.scan_worker = AttachmentScannerWorker(self.attachment_scanner, [], local_files=local_files)
+            self.scan_worker = AttachmentScannerWorker(self.attachment_scanner, local_files=local_files)
             self.scan_worker.update_result.connect(self.display_scan_results)
             self.scan_worker.start()
         except Exception as e:
