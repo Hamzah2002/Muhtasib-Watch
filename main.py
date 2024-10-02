@@ -1,5 +1,7 @@
+import os
 import sys
 import uuid
+import time  # Add this for timing issues
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 from ui import Ui_MainWindow
@@ -7,7 +9,11 @@ import dkim_spf_validator
 import attachment_scanner
 import url_checker
 from src.phishing_analyzer import PhishingAnalyzer
-from gmail_downloader import authenticate_gmail, list_gmail_attachments, download_gmail_attachment, extract_gmail_ids
+from gmail_downloader import authenticate_gmail, list_gmail_attachments, download_gmail_attachment, extract_message_id, get_correct_attachment_id
+import logging
+
+# Configure logging for better traceability
+logging.basicConfig(level=logging.INFO)
 
 
 class AttachmentScannerWorker(QThread):
@@ -23,10 +29,18 @@ class AttachmentScannerWorker(QThread):
         try:
             result_text = "Attachment Scan Results:\n\n"
 
+            # Scan local files
             for file in self.local_files:
-                scan_result = self.scanner.scan_file_with_clamav(file)
-                result_text += f"File: {file}\nStatus: {scan_result['status']}\nDetails: {scan_result['details']}\n\n"
+                if os.path.exists(file):
+                    logging.info(f"Scanning file: {file}")
+                    # Add a short delay to ensure file is completely saved
+                    time.sleep(1)  # Small delay to avoid timing issues
+                    scan_result = self.scanner.scan_file_with_clamav(file)
+                    result_text += f"File: {file}\nStatus: {scan_result['status']}\nDetails: {scan_result['details']}\n\n"
+                else:
+                    result_text += f"File: {file} not found, skipping scan.\n\n"
 
+            # Analyze attachment URLs
             if self.attachment_urls:
                 results = self.scanner.analyze_attachments(self.attachment_urls)
                 for result in results:
@@ -107,33 +121,36 @@ class MuhtasibWatch(Ui_MainWindow):
             gmail_input = self.attachment_input.toPlainText().strip()
             gmail_urls = [url.strip() for url in gmail_input.split(',') if url.strip()]
 
+            service = authenticate_gmail()
             if any("mail.google.com" in url for url in gmail_urls):
-                service = authenticate_gmail()
                 for url in gmail_urls:
-                    msg_id, attachment_id = extract_gmail_ids(url)
-                    if msg_id and attachment_id:
-                        save_path = f"downloads/{uuid.uuid4().hex}_attachment.dat"
-                        local_file = download_gmail_attachment(service, 'me', msg_id, attachment_id, save_path)
-                        if local_file:
-                            self.attachment_result_area.setText(f"Successfully downloaded: {local_file}")
-                            scan_result = self.attachment_scanner.scan_file_with_clamav(local_file)
-                            self.display_scan_results(scan_result)
+                    msg_id = extract_message_id(url)
+                    if msg_id:
+                        attachment_id = get_correct_attachment_id(service, 'me', msg_id)
+                        if attachment_id:
+                            save_path = f"downloads/{uuid.uuid4().hex}.dat"
+                            local_file = download_gmail_attachment(service, 'me', msg_id, attachment_id, save_path)
+                            if local_file and os.path.exists(local_file):
+                                logging.info(f"Successfully downloaded: {local_file}")
+                                time.sleep(1)  # Add a short delay before scanning
+                                scan_result = self.attachment_scanner.scan_file_with_clamav(local_file)
+                                self.display_scan_results(f"File: {local_file}\nStatus: {scan_result['status']}\nDetails: {scan_result['details']}\n\n")
+                            else:
+                                self.attachment_result_area.setText(f"Failed to download attachment from Gmail link: {url}")
                         else:
-                            self.attachment_result_area.setText(f"Failed to download attachment from Gmail link: {url}")
+                            self.attachment_result_area.setText(f"Could not retrieve attachment ID for message: {msg_id}")
                     else:
-                        self.attachment_result_area.setText(f"Invalid Gmail link: {url}.")
+                        self.attachment_result_area.setText(f"Invalid Gmail link: {url}. Unable to extract message ID.")
                 return
 
-            service = authenticate_gmail()
             attachments = list_gmail_attachments(service, user_id='me', query='has:attachment')
-
             if not attachments:
                 self.attachment_result_area.setText("No attachments found in Gmail.")
                 return
 
             local_files = []
             for attachment in attachments:
-                save_path = f"downloads/{attachment['filename']}"
+                save_path = f"downloads/{uuid.uuid4().hex}_{attachment['filename']}"
                 local_files.append(download_gmail_attachment(service, 'me', attachment['message_id'], attachment['attachment_id'], save_path))
 
             self.scan_worker = AttachmentScannerWorker(self.attachment_scanner, local_files=local_files)
