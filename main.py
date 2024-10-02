@@ -1,7 +1,7 @@
 import os
 import sys
 import uuid
-import time  # Add this for timing issues
+import time  # Add this for timing issuess
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 from ui import Ui_MainWindow
