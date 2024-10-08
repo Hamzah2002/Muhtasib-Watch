@@ -202,7 +202,7 @@ class Ui_MainWindow(QMainWindow):
         contact_label = QLabel(
             "For any questions or feedback, please feel free to contact the developer:<br>"
             "<b>Mouhamad Hamzah Ismail</b><br>"
-            "<a href='mailto:mouhamad.hamzah@gmail.com' style='color:#1E90FF;'>mouhamad.hamzah@gmail.com</a>"
+            "<a href='mailto:mhismail@umich.edu' style='color:#1E90FF;'>mhismail@umich.edu</a>"
         )
         contact_label.setStyleSheet("color: #A0A0A0; padding: 10px; font-size: 14px;")
         contact_label.setWordWrap(True)
