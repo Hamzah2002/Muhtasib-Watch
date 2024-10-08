@@ -14,3 +14,5 @@ pyClamd~=0.4.0
 nltk~=3.9.1
 pandas~=2.2.3
 scikit-learn~=1.5.2
+numpy~=2.1.1
+imblearn~=0.0
