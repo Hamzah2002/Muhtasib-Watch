@@ -1,6 +1,7 @@
 import pickle
 from .preprocess import clean_text  # Import the cleaning function from preprocess.py
 
+
 class PhishingAnalyzer:
     """
     Core class for the phishing detection system.
@@ -78,26 +79,3 @@ class PhishingAnalyzer:
             "suspicious_keywords": keyword_analysis,
             "cleaned_text": cleaned_text
         }
-
-# Example usage for testing
-if __name__ == "__main__":
-    # Assuming that the models are saved in 'models/' directory
-    analyzer = PhishingAnalyzer("models/phishing_model.pkl", "models/vectorizer.pkl")
-
-    # Example email to test
-    test_email = """
-    Dear user,
-
-    We have detected unusual activity on your account. Please verify your identity immediately by clicking the link below.
-    If you do not take action, your account will be suspended.
-
-    Click here to verify: http://example.com/verify
-
-    Thank you,
-    Security Team
-    """
-
-    # Run predictions and keyword analysis
-    print(f"Prediction: {analyzer.predict(test_email)}")
-    print(f"Keyword Analysis: {analyzer.analyze_keywords(test_email)}")
-    print(f"Detailed Report: {analyzer.get_prediction_with_details(test_email)}")
