@@ -11,20 +11,22 @@ logging.basicConfig(level=logging.INFO)
 
 class AttachmentScanner:
     def __init__(self):
-        self.cd = None
-        self._connect_clamav()
+        self.cd = None  # Don't connect immediately
 
     def _connect_clamav(self):
-        try:
-            self.cd = pyclamd.ClamdAgnostic()
-            if self.cd.ping():
-                logging.info("Successfully connected to ClamAV daemon.")
-            else:
-                logging.error("Failed to connect to ClamAV. Ensure ClamAV daemon is running.")
+        if not self.cd:  # Only connect if not already connected
+            try:
+                self.cd = pyclamd.ClamdAgnostic()
+                if self.cd.ping():
+                    logging.info("Successfully connected to ClamAV daemon.")
+                else:
+                    logging.error("Failed to connect to ClamAV. Ensure ClamAV daemon is running.")
+                    self.cd = None
+                    raise Exception("ClamAV connection failed.")
+            except Exception as e:
+                logging.error(f"Error connecting to ClamAV: {str(e)}")
                 self.cd = None
-        except Exception as e:
-            logging.error(f"Error connecting to ClamAV: {str(e)}")
-            self.cd = None
+                raise Exception("ClamAV connection could not be established.")
 
     def download_attachment(self, url):
         if not self._is_valid_url(url):
@@ -55,6 +57,7 @@ class AttachmentScanner:
             return None
 
     def scan_file_with_clamav(self, file_path, url=None):
+        self._connect_clamav()  # Ensure ClamAV is connected only when scanning
         if not self.cd:
             return {"url": url, "file_path": file_path, "status": "error", "details": "ClamAV is not available for scanning. Ensure ClamAV is running."}
 
@@ -78,36 +81,35 @@ class AttachmentScanner:
                 "details": f"File path check failure: {str(e)}. This may be caused by antivirus software restrictions or running the program in a sandboxed environment."
             }
 
-    def analyze_attachments(self, attachment_urls):
-        results = []
-        for url in attachment_urls:
-            if "mail.google.com" in url:
-                results.append({
-                    "url": url,
-                    "status": "error",
-                    "details": "Gmail URLs cannot be processed with this function. Use the 'Download Gmail Attachments' option instead."
-                })
-                continue
+    def analyze_attachment(self, attachment_url):
+        """
+        Analyze a single attachment from a given URL.
+        """
+        if "mail.google.com" in attachment_url:
+            return {
+                "url": attachment_url,
+                "status": "error",
+                "details": "Gmail URLs cannot be processed with this function. Use the 'Download Gmail Attachments' option instead."
+            }
 
-            file_path = self.download_attachment(url)
-            if file_path:
-                scan_result = self.scan_file_with_clamav(file_path, url)
-                results.append(scan_result)
-                try:
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
-                        logging.info(f"Deleted the file {file_path} after scanning")
-                except Exception as e:
-                    logging.error(f"Error deleting file {file_path}: {str(e)}")
-                    results.append({
-                        "url": url,
-                        "file_path": file_path,
-                        "status": "warning",
-                        "details": f"File scanned successfully, but deletion failed: {str(e)}"
-                    })
-            else:
-                results.append({"url": url, "status": "error", "details": "Failed to download attachment"})
-        return results
+        file_path = self.download_attachment(attachment_url)
+        if file_path:
+            scan_result = self.scan_file_with_clamav(file_path, attachment_url)
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    logging.info(f"Deleted the file {file_path} after scanning")
+            except Exception as e:
+                logging.error(f"Error deleting file {file_path}: {str(e)}")
+                return {
+                    "url": attachment_url,
+                    "file_path": file_path,
+                    "status": "warning",
+                    "details": f"File scanned successfully, but deletion failed: {str(e)}"
+                }
+            return scan_result
+        else:
+            return {"url": attachment_url, "status": "error", "details": "Failed to download attachment"}
 
     @staticmethod
     def _is_valid_url(url):

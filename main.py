@@ -39,14 +39,14 @@ class AttachmentScannerWorker(QThread):
                 else:
                     result_text += f"File: {file} not found, skipping scan.\n\n"
 
-            # Analyze attachment URLs
+            # Analyze the single attachment URL
             if self.attachment_urls:
-                results = self.scanner.analyze_attachments(self.attachment_urls)
-                for result in results:
-                    result_text += f"URL: {result.get('url', 'N/A')}\n"
-                    result_text += f"File Path: {result.get('file_path', 'N/A')}\n"
-                    result_text += f"Status: {result['status']}\n"
-                    result_text += f"Details: {result['details']}\n\n"
+                # Since you only want one attachment to be processed, use the first URL
+                result = self.scanner.analyze_attachment(self.attachment_urls[0])
+                result_text += f"URL: {result.get('url', 'N/A')}\n"
+                result_text += f"File Path: {result.get('file_path', 'N/A')}\n"
+                result_text += f"Status: {result['status']}\n"
+                result_text += f"Details: {result['details']}\n\n"
 
             self.update_result.emit(result_text)
         except Exception as e:
@@ -108,25 +108,31 @@ class MuhtasibWatch(Ui_MainWindow):
             self.attachment_scanner_page.attachment_result_area.setText(
                 "Sandboxing... Please wait. This may take a few moments depending on the file size and type."
             )
-            attachment_urls = self.attachment_scanner_page.attachment_input.toPlainText().strip().split(',')
-            attachment_urls = [url.strip() for url in attachment_urls if url.strip()]
+            attachment_url = self.attachment_scanner_page.attachment_input.toPlainText().strip()
 
-            if attachment_urls:
-                self.scan_worker = AttachmentScannerWorker(self.attachment_scanner, attachment_urls=attachment_urls)
+            if attachment_url:
+                self.scan_worker = AttachmentScannerWorker(self.attachment_scanner, attachment_urls=[attachment_url])
                 self.scan_worker.update_result.connect(self.display_scan_results)
                 self.scan_worker.start()
+            else:
+                self.attachment_scanner_page.attachment_result_area.setText("Please enter a valid attachment URL.")
         except Exception as e:
             self.attachment_scanner_page.attachment_result_area.setText(f"Error in attachment scanning: {str(e)}")
 
     def download_gmail_attachments(self):
         try:
-            gmail_input = self.attachment_scanner_page.attachment_input.toPlainText().strip()
-            gmail_urls = [url.strip() for url in gmail_input.split(',') if url.strip()]
+            # Clear the results area and get the single Gmail URL from input
+            self.attachment_scanner_page.attachment_result_area.setText(
+                "Downloading attachment from Gmail... Please wait."
+            )
+            gmail_url = self.attachment_scanner_page.attachment_input.toPlainText().strip()
 
-            service = authenticate_gmail()
-            if any("mail.google.com" in url for url in gmail_urls):
-                for url in gmail_urls:
-                    msg_id = extract_message_id(url)
+            if gmail_url:
+                service = authenticate_gmail()
+
+                # Process a single Gmail URL
+                if "mail.google.com" in gmail_url:
+                    msg_id = extract_message_id(gmail_url)
                     if msg_id:
                         attachment_id = get_correct_attachment_id(service, 'me', msg_id)
                         if attachment_id:
@@ -136,30 +142,23 @@ class MuhtasibWatch(Ui_MainWindow):
                                 logging.info(f"Successfully downloaded: {local_file}")
                                 time.sleep(1)  # Add a short delay before scanning
                                 scan_result = self.attachment_scanner.scan_file_with_clamav(local_file)
-                                self.display_scan_results(f"File: {local_file}\nStatus: {scan_result['status']}\nDetails: {scan_result['details']}\n\n")
+                                self.display_scan_results(
+                                    f"File: {local_file}\nStatus: {scan_result['status']}\nDetails: {scan_result['details']}\n\n")
                             else:
-                                self.attachment_scanner_page.attachment_result_area.setText(f"Failed to download attachment from Gmail link: {url}")
+                                self.attachment_scanner_page.attachment_result_area.setText(
+                                    f"Failed to download attachment from Gmail link: {gmail_url}")
                         else:
-                            self.attachment_scanner_page.attachment_result_area.setText(f"Could not retrieve attachment ID for message: {msg_id}")
+                            self.attachment_scanner_page.attachment_result_area.setText(
+                                f"Could not retrieve attachment ID for message: {msg_id}")
                     else:
-                        self.attachment_scanner_page.attachment_result_area.setText(f"Invalid Gmail link: {url}. Unable to extract message ID.")
-                return
-
-            attachments = list_gmail_attachments(service, user_id='me', query='has:attachment')
-            if not attachments:
-                self.attachment_scanner_page.attachment_result_area.setText("No attachments found in Gmail.")
-                return
-
-            local_files = []
-            for attachment in attachments:
-                save_path = f"downloads/{uuid.uuid4().hex}_{attachment['filename']}"
-                local_files.append(download_gmail_attachment(service, 'me', attachment['message_id'], attachment['attachment_id'], save_path))
-
-            self.scan_worker = AttachmentScannerWorker(self.attachment_scanner, local_files=local_files)
-            self.scan_worker.update_result.connect(self.display_scan_results)
-            self.scan_worker.start()
+                        self.attachment_scanner_page.attachment_result_area.setText(
+                            f"Invalid Gmail link: {gmail_url}. Unable to extract message ID.")
+                else:
+                    self.attachment_scanner_page.attachment_result_area.setText("Please provide a valid Gmail URL.")
+            else:
+                self.attachment_scanner_page.attachment_result_area.setText("Please enter a valid Gmail URL.")
         except Exception as e:
-            self.attachment_scanner_page.attachment_result_area.setText(f"Error downloading Gmail attachments: {str(e)}")
+            self.attachment_scanner_page.attachment_result_area.setText(f"Error downloading Gmail attachment: {str(e)}")
 
     def check_phishing(self):
         try:
