@@ -75,23 +75,43 @@ class HomePage(QWidget):
         attachment_label.setStyleSheet("color: #FFFFFF; padding: 10px;")
         scroll_area_layout.addWidget(attachment_label)
 
-        attachment_description = QLabel(
+        attachment_description_part1 = QLabel(
             "<b>Download Gmail Attachments:</b><br>"
             "Use this feature to download files that are inside an email.<br><br>"
             "1. Right-click on the attachment in the email.<br>"
             "2. Click on 'Copy Link'.<br>"
             "3. Paste the link into the Attachment Scanning input area.<br>"
             "4. Click on the 'Download Gmail Attachments' button to retrieve the file.<br><br>"
-            "<b>Scan Attachments:</b><br>"
+        )
+        attachment_description_part1.setStyleSheet("color: #A0A0A0; padding-left: 20px;")
+        attachment_description_part1.setWordWrap(True)
+        scroll_area_layout.addWidget(attachment_description_part1)
+
+        # Image for "Download Gmail Attachments"
+        download_gmail_image = QLabel()
+        download_gmail_image.setPixmap(
+            QPixmap("resources/manuals/download_gmail_example.png").scaledToWidth(600, Qt.SmoothTransformation))
+        download_gmail_image.setAlignment(Qt.AlignCenter)
+        scroll_area_layout.addWidget(download_gmail_image)
+
+        attachment_description_part2 = QLabel(
+            "<b>Downloadable link:</b><br>"
             "Use this feature to analyze links with downloadable content, similar to the URL Checker.<br><br>"
             "1. Right-click on the download link you want to scan.<br>"
             "2. Click on 'Copy Link'.<br>"
             "3. Paste the link into the Attachment Scanning input area.<br>"
             "4. Click on the 'Scan Attachments' button to perform a security check on the file."
         )
-        attachment_description.setStyleSheet("color: #A0A0A0; padding-left: 20px;")
-        attachment_description.setWordWrap(True)
-        scroll_area_layout.addWidget(attachment_description)
+        attachment_description_part2.setStyleSheet("color: #A0A0A0; padding-left: 20px;")
+        attachment_description_part2.setWordWrap(True)
+        scroll_area_layout.addWidget(attachment_description_part2)
+
+        # Image for "Scan Attachments"
+        scan_attachments_image = QLabel()
+        scan_attachments_image.setPixmap(
+            QPixmap("resources/manuals/download_link_example.png").scaledToWidth(600, Qt.SmoothTransformation))
+        scan_attachments_image.setAlignment(Qt.AlignCenter)
+        scroll_area_layout.addWidget(scan_attachments_image)
 
         ### Phishing Analysis Section ###
         phishing_label = QLabel("🔍 Phishing Analysis - How to Use:")
@@ -107,12 +127,6 @@ class HomePage(QWidget):
         )
         phishing_description.setStyleSheet("color: #A0A0A0; padding-left: 20px;")
         scroll_area_layout.addWidget(phishing_description)
-
-        phishing_image = QLabel()
-        phishing_image.setPixmap(
-            QPixmap("resources/manuals/phishing_analysis_example.png").scaledToWidth(600, Qt.SmoothTransformation))
-        phishing_image.setAlignment(Qt.AlignCenter)
-        scroll_area_layout.addWidget(phishing_image)
 
         ### Adding the Scroll Area ###
         scroll_area_widget.setLayout(scroll_area_layout)

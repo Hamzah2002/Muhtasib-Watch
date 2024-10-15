@@ -1,3 +1,4 @@
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QMainWindow, QHBoxLayout, QWidget, QStackedWidget
 from PyQt5.QtCore import Qt
 from .sidebar import NavigationSidebar
@@ -18,7 +19,7 @@ class Ui_MainWindow(QMainWindow):
     def setupUI(self):
         self.setWindowTitle("Muhtasib Watch - Email Security Analyzer")
         self.setGeometry(100, 100, 1400, 800)
-        # self.setWindowIcon(QIcon("resources/security_icon.png"))  # Commented out if no icon provided
+        self.setWindowIcon(QIcon("resources/Logo.png"))
 
         apply_stylesheet(self)
 
