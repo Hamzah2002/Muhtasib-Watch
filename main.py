@@ -11,6 +11,9 @@ from src.phishing_analyzer import PhishingAnalyzer
 import attachment_scanner
 import dkim_spf_validator
 import url_checker
+from outlook_downloader import download_specific_outlook_attachment
+from outlook_downloader import authenticate_outlook
+
 
 # Configure logging for better traceability
 logging.basicConfig(level=logging.INFO)
@@ -60,6 +63,7 @@ class MuhtasibWatch(Ui_MainWindow):
             self.attachment_scanner = attachment_scanner.AttachmentScanner()
             self.phishing_analyzer = PhishingAnalyzer("models/phishing_model.pkl", "models/vectorizer.pkl")
             self.scan_worker = None
+            self.outlook_worker = None  # Initialize worker variable
             self.connectUI()
         except Exception as e:
             logging.error(f"Error initializing application components: {e}")
@@ -70,6 +74,7 @@ class MuhtasibWatch(Ui_MainWindow):
             self.url_checker_page.check_url_button.clicked.connect(self.check_url)
             self.dkim_spf_page.check_dkim_button.clicked.connect(self.check_dkim_spf)
             self.attachment_scanner_page.scan_attachment_button.clicked.connect(self.scan_attachments)
+            self.attachment_scanner_page.download_outlook_button.clicked.connect(self.download_outlook_attachments)
             self.phishing_analysis_page.check_phishing_button.clicked.connect(self.check_phishing)
             self.attachment_scanner_page.download_gmail_button.clicked.connect(self.download_gmail_attachments)
         except Exception as e:
@@ -160,6 +165,32 @@ class MuhtasibWatch(Ui_MainWindow):
         except Exception as e:
             self.attachment_scanner_page.attachment_result_area.setText(f"Error downloading Gmail attachment: {str(e)}")
 
+    def download_outlook_attachments(self):
+        try:
+            email_subject = self.attachment_scanner_page.attachment_input.toPlainText().strip()
+
+            if not email_subject:
+                self.attachment_scanner_page.attachment_result_area.setText("Please enter a valid email subject.")
+                return
+
+            self.attachment_scanner_page.attachment_result_area.setText("Starting Outlook operation...")
+
+            # Start the worker
+            self.outlook_worker = OutlookWorker(email_subject)
+            self.outlook_worker.result_signal.connect(self.display_outlook_results)
+            self.outlook_worker.message_signal.connect(self.display_authentication_message)
+            self.outlook_worker.start()
+
+        except Exception as e:
+            self.attachment_scanner_page.attachment_result_area.setText(f"Error: {str(e)}")
+
+    def display_authentication_message(self, message):
+        self.attachment_scanner_page.attachment_result_area.append(message)
+
+    def display_outlook_results(self, result_text):
+        """Display the results of the Outlook operation in the GUI."""
+        self.attachment_scanner_page.attachment_result_area.setText(result_text)
+
     def check_phishing(self):
         try:
             email_text = self.phishing_analysis_page.email_input.toPlainText().strip()
@@ -176,6 +207,40 @@ class MuhtasibWatch(Ui_MainWindow):
             self.attachment_scanner_page.attachment_result_area.setText(result_text)
         except Exception as e:
             self.attachment_scanner_page.attachment_result_area.setText(f"Error displaying scan results: {str(e)}")
+
+
+class OutlookWorker(QThread):
+    result_signal = pyqtSignal(str)  # Signal to send results to the GUI
+    message_signal = pyqtSignal(str)  # Signal to send authentication messages to the GUI
+
+    def __init__(self, subject):
+        super().__init__()
+        self.subject = subject  # The subject to search for
+
+    def run(self):
+        try:
+            # Define a callback to send authentication messages to the GUI
+            def message_callback(message):
+                self.message_signal.emit(message)
+
+            # Authenticate and handle the workflow
+            token = authenticate_outlook(message_callback=message_callback)
+            if not token:
+                self.result_signal.emit("Authentication failed.")
+                return
+
+            # Perform the attachment download
+            result_text = f"Searching for emails with subject: {self.subject}\n"
+            downloaded_file = download_specific_outlook_attachment(self.subject)
+
+            if downloaded_file:
+                result_text += f"Attachment downloaded successfully: {downloaded_file}"
+            else:
+                result_text += "No attachments found for the given subject."
+
+            self.result_signal.emit(result_text)
+        except Exception as e:
+            self.result_signal.emit(f"Error during Outlook operation: {str(e)}")
 
 
 if __name__ == '__main__':

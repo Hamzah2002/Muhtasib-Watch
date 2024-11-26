@@ -14,16 +14,18 @@ class AttachmentScannerPage(QWidget):
         layout.setSpacing(20)  # Set space between widgets
 
         # Create and configure the input field for attachment URLs
-        self.attachment_label = QLabel("Enter Attachment URLs (comma-separated):")
+        self.attachment_label = QLabel("Enter Attachment URL:")
         self.attachment_input = QTextEdit()
         self.attachment_input.setFixedHeight(150)
-        self.attachment_input.setPlaceholderText("e.g., https://example.com/file1, https://another.com/file2")
+        self.attachment_input.setPlaceholderText("e.g., https://example.com/file1")
 
         # Create the 'Scan Attachments' button
-        self.scan_attachment_button = QPushButton("Scan Attachments")
+        self.scan_attachment_button = QPushButton("Sandbox Downloadable link")
 
         # Create the 'Download Gmail Attachments' button
-        self.download_gmail_button = QPushButton("Download Gmail Attachments")
+        self.download_gmail_button = QPushButton("Sandbox Gmail Attachment")
+        # Create the 'Download Outlook Attachments' button
+        self.download_outlook_button = QPushButton("Sandbox Outlook Attachment")
 
         # Create the result display area
         self.attachment_result_area = QTextEdit()
@@ -35,6 +37,7 @@ class AttachmentScannerPage(QWidget):
         layout.addWidget(self.attachment_input)
         layout.addWidget(self.scan_attachment_button)
         layout.addWidget(self.download_gmail_button)
+        layout.addWidget(self.download_outlook_button)
         layout.addWidget(self.attachment_result_area)
 
         # Set the layout for the AttachmentScannerPage widget

@@ -14,12 +14,12 @@ class URLCheckerPage(QWidget):
         layout.setSpacing(20)  # Set space between widgets
 
         # Create and configure the input field for URLs
-        self.url_label = QLabel("Enter URLs (comma-separated):")
+        self.url_label = QLabel("Enter the URL link below")
         self.url_input = QLineEdit()
-        self.url_input.setPlaceholderText("e.g., https://example.com, https://another.com")
+        self.url_input.setPlaceholderText("e.g., https://example.com")
 
         # Create the 'Check URLs' button
-        self.check_url_button = QPushButton("Check URLs")
+        self.check_url_button = QPushButton("Check URL")
 
         # Create the result display area
         self.url_result_area = QTextEdit()
