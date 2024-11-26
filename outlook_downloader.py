@@ -3,7 +3,9 @@ import logging
 import base64
 import uuid
 import requests
+from urllib.parse import quote
 from msal import PublicClientApplication, SerializableTokenCache
+import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -79,6 +81,10 @@ def authenticate_outlook(message_callback=None):
         return None
 
 
+def sanitize_query(query):
+    """Remove problematic characters from the query."""
+    return re.sub(r"[^\w\s]", "", query)  # Remove special characters except spaces
+
 
 def list_outlook_emails(token, query=None):
     """List the user's Outlook emails based on a search query."""
@@ -86,9 +92,15 @@ def list_outlook_emails(token, query=None):
     try:
         url = f"{GRAPH_API_ENDPOINT}/me/messages"
         if query:
-            url += f"?$search={query}"
+            # Properly encode and format the search query
+            encoded_query = quote(query)
+            url += f"?$search=\"{encoded_query}\""
 
         response = requests.get(url, headers=headers)
+        logging.info(f"Graph API URL: {url}")
+        logging.info(f"Response Status Code: {response.status_code}")
+        logging.info(f"Response Content: {response.text}")  # Log the full response
+
         response.raise_for_status()  # Raise an error for non-200 responses
 
         emails = response.json().get('value', [])
@@ -101,8 +113,8 @@ def list_outlook_emails(token, query=None):
             logging.info(f"Email: {email['subject']} (ID: {email['id']})")
 
         return emails
-    except Exception as e:
-        logging.error(f"Error listing Outlook emails: {str(e)}")
+    except requests.exceptions.HTTPError as e:
+        logging.error(f"Error listing Outlook emails: {e}")
         return []
 
 
@@ -139,7 +151,9 @@ def download_specific_outlook_attachment(email_subject):
         logging.error("Unable to authenticate with Outlook.")
         return None
 
-    emails = list_outlook_emails(token, query=email_subject)
+    # Sanitize the query to remove unsupported characters
+    sanitized_subject = sanitize_query(email_subject)
+    emails = list_outlook_emails(token, query=sanitized_subject)
     if not emails:
         logging.error("No emails found with the given subject.")
         return None

@@ -38,7 +38,7 @@ class AboutPage(QWidget):
             "3. <b>Attachment Sandboxing:</b> Analyze attachments in a secure sandbox environment to detect malicious behavior.<br><br>"
             "4. <b>Attachment Scanning:</b> Scan individual attachments and downloadable items for malware and other threats.<br><br>"
             "5. <b>Machine Learning-Based Phishing Analysis:</b> Uses machine learning models to predict and flag phishing attempts based on email content.<br><br>"
-            "6. <b>Gmail Attachment Access (Optional):</b> You can scan attachments in your Gmail account, but the application will only require read access to download and analyze those files.<br><br>"
+            "6. <b>Gmail/Outlook Attachment Access (Optional):</b> You can scan attachments in your Gmail account, but the application will only require read access to download and analyze those files.<br><br>"
             "<b>No login is required unless you want to scan attachments in your email.</b>"
         )
         purpose_label.setStyleSheet("color: #A0A0A0; padding: 10px; line-height: 1.5;")
