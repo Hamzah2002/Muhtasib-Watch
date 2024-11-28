@@ -14,8 +14,12 @@ import url_checker
 from outlook_downloader import download_specific_outlook_attachment
 from outlook_downloader import authenticate_outlook
 from setup_clamav import is_clamav_installed, setup_clamav
-import subprocess
-
+import requests
+import pyclamd
+import tempfile  # Import tempfile for temporary file handling
+from urllib.parse import urlparse
+from urllib3.util.retry import Retry  # Import Retry for request retries
+from requests.adapters import HTTPAdapter
 
 
 
@@ -33,25 +37,19 @@ def get_log_path():
         return os.path.join(sys._MEIPASS, "app.log")
     return os.path.join(os.getcwd(), "app.log")
 
-# Configure logging
+
+TEMP_DIR = tempfile.mkdtemp(prefix="MuhtasibWatch_")
+
+
+# Configure Logging
 logging.basicConfig(
-    filename=get_log_path(),
+    filename="app.log",
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logging.info("Logging setup complete.")  # Test log to ensure logging works
 
 
-def update_requirements():
-    """Automatically updates the requirements.txt file."""
-    print("Updating requirements.txt...")
-    result = subprocess.run(["pip", "freeze"], capture_output=True, text=True)
-    if result.returncode == 0:
-        with open("requirements.txt", "w") as f:
-            f.write(result.stdout)
-        print("requirements.txt has been updated.")
-    else:
-        print("Error updating requirements.txt:", result.stderr)
 
 
 
@@ -73,12 +71,12 @@ class AttachmentScannerWorker(QThread):
             for file in self.local_files:
                 if os.path.exists(file):
                     logging.info(f"Scanning file: {file}")
-                    time.sleep(1)  # Add a short delay to ensure file is completely saved
+                    time.sleep(1)  # Ensure the file is completely written
                     scan_result = self.scanner.scan_file_with_clamav(file)
                     result_text += f"File: {file}\nStatus: {scan_result['status']}\nDetails: {scan_result['details']}\n\n"
                 else:
                     logging.warning(f"File: {file} not found. Skipping scan.")
-                    result_text += f"File: {file} not found, skipping scan.\n\n"
+                    result_text += f"File: {file} not found. Skipping scan.\n\n"
 
             if self.attachment_urls:
                 logging.debug(f"Analyzing attachment URL: {self.attachment_urls[0]}")
@@ -96,27 +94,45 @@ class AttachmentScannerWorker(QThread):
 
 
 class MuhtasibWatch(Ui_MainWindow):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, scanner_backend):
+        """
+        Initialize the MuhtasibWatch application.
+
+        :param scanner_backend: The AttachmentScanner instance for scanning operations.
+        """
+        # Pass the scanner_backend to Ui_MainWindow
+        super().__init__(scanner_backend=scanner_backend)
         try:
             logging.info("Initializing MuhtasibWatch application.")
-            self.attachment_scanner = attachment_scanner.AttachmentScanner()
+
+            # Store scanner_backend as an instance variable for use throughout the class
+            self.attachment_scanner = scanner_backend
+
+            # Connect UI components
+            self.connectUI()
+
+            # Initialize the phishing analyzer with model paths
             self.phishing_analyzer = PhishingAnalyzer(
                 self.resource_path("models/phishing_model.pkl"),
                 self.resource_path("models/vectorizer.pkl")
             )
+
+            # Workers for scanning and Outlook operations
             self.scan_worker = None
-            self.outlook_worker = None  # Initialize worker variable
-            self.connectUI()
+            self.outlook_worker = None
+
         except Exception as e:
             logging.error(f"Error initializing application components: {e}", exc_info=True)
 
     @staticmethod
     def resource_path(relative_path):
-        """Get the absolute path to a resource."""
+        """
+        Get the absolute path to a resource (handles PyInstaller environments).
+        """
         if hasattr(sys, '_MEIPASS'):
             return os.path.join(sys._MEIPASS, relative_path)
         return os.path.join(os.path.abspath("."), relative_path)
+
 
     def connectUI(self):
         try:
@@ -310,27 +326,25 @@ class OutlookWorker(QThread):
 
 if __name__ == '__main__':
     try:
-        # Optional: Update requirements if needed
-        update_requirements()
-
-        # Log application start
         logging.info("Application started.")
 
-        # Initialize the application
+        # Create a temporary directory for file handling
+        temp_dir = tempfile.mkdtemp(prefix="MuhtasibWatch_")
+        logging.info(f"Temporary directory for attachment scanning: {temp_dir}")
+
+        # Initialize the AttachmentScanner with the temporary directory
+        scanner_backend = attachment_scanner.AttachmentScanner(temp_dir=temp_dir)
+
+        # Initialize the main application window
         app = QApplication(sys.argv)
-        window = MuhtasibWatch()
+        window = MuhtasibWatch(scanner_backend=scanner_backend)  # Pass scanner_backend to MuhtasibWatch
         window.show()
 
-        # Log successful UI display
         logging.info("Application is running.")
 
-        # Execute the application
+        # Start the application
         sys.exit(app.exec_())
     except Exception as e:
-        # Log any unhandled exceptions with full traceback
         logging.error(f"Unhandled exception occurred: {e}", exc_info=True)
-
-        # Print error to console and wait for user input to exit
         print(f"Unhandled exception: {e}")
-        input("Press Enter to exit...")
 
