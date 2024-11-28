@@ -6,17 +6,54 @@ import logging
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 from ui.main_window import Ui_MainWindow
-from gmail_downloader import authenticate_gmail, list_gmail_attachments, download_gmail_attachment, extract_message_id, get_correct_attachment_id
+from gmail_downloader import authenticate_gmail, download_gmail_attachment, extract_message_id, get_correct_attachment_id
 from src.phishing_analyzer import PhishingAnalyzer
 import attachment_scanner
 import dkim_spf_validator
 import url_checker
 from outlook_downloader import download_specific_outlook_attachment
 from outlook_downloader import authenticate_outlook
+from setup_clamav import is_clamav_installed, setup_clamav
+import subprocess
 
 
-# Configure logging for better traceability
-logging.basicConfig(level=logging.INFO)
+
+
+
+if not is_clamav_installed():
+    print("ClamAV is not installed or running. Setting it up...")
+    setup_clamav()
+else:
+    print("ClamAV is installed and running. Proceeding with the application...")
+
+# Function to get the log file path
+def get_log_path():
+    if hasattr(sys, '_MEIPASS'):
+        # PyInstaller's _MEIPASS directory for the bundled app
+        return os.path.join(sys._MEIPASS, "app.log")
+    return os.path.join(os.getcwd(), "app.log")
+
+# Configure logging
+logging.basicConfig(
+    filename=get_log_path(),
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logging.info("Logging setup complete.")  # Test log to ensure logging works
+
+
+def update_requirements():
+    """Automatically updates the requirements.txt file."""
+    print("Updating requirements.txt...")
+    result = subprocess.run(["pip", "freeze"], capture_output=True, text=True)
+    if result.returncode == 0:
+        with open("requirements.txt", "w") as f:
+            f.write(result.stdout)
+        print("requirements.txt has been updated.")
+    else:
+        print("Error updating requirements.txt:", result.stderr)
+
+
 
 
 class AttachmentScannerWorker(QThread):
@@ -31,8 +68,8 @@ class AttachmentScannerWorker(QThread):
     def run(self):
         try:
             result_text = "Attachment Scan Results:\n\n"
+            logging.debug("Started attachment scanning.")
 
-            # Scan local files
             for file in self.local_files:
                 if os.path.exists(file):
                     logging.info(f"Scanning file: {file}")
@@ -40,11 +77,11 @@ class AttachmentScannerWorker(QThread):
                     scan_result = self.scanner.scan_file_with_clamav(file)
                     result_text += f"File: {file}\nStatus: {scan_result['status']}\nDetails: {scan_result['details']}\n\n"
                 else:
+                    logging.warning(f"File: {file} not found. Skipping scan.")
                     result_text += f"File: {file} not found, skipping scan.\n\n"
 
-            # Analyze the single attachment URL
             if self.attachment_urls:
-                # Since you only want one attachment to be processed, use the first URL
+                logging.debug(f"Analyzing attachment URL: {self.attachment_urls[0]}")
                 result = self.scanner.analyze_attachment(self.attachment_urls[0])
                 result_text += f"URL: {result.get('url', 'N/A')}\n"
                 result_text += f"File Path: {result.get('file_path', 'N/A')}\n"
@@ -52,7 +89,9 @@ class AttachmentScannerWorker(QThread):
                 result_text += f"Details: {result['details']}\n\n"
 
             self.update_result.emit(result_text)
+            logging.debug("Attachment scanning completed.")
         except Exception as e:
+            logging.error(f"Error during attachment scanning: {e}", exc_info=True)
             self.update_result.emit(f"Error during attachment scanning: {str(e)}")
 
 
@@ -60,13 +99,24 @@ class MuhtasibWatch(Ui_MainWindow):
     def __init__(self):
         super().__init__()
         try:
+            logging.info("Initializing MuhtasibWatch application.")
             self.attachment_scanner = attachment_scanner.AttachmentScanner()
-            self.phishing_analyzer = PhishingAnalyzer("models/phishing_model.pkl", "models/vectorizer.pkl")
+            self.phishing_analyzer = PhishingAnalyzer(
+                self.resource_path("models/phishing_model.pkl"),
+                self.resource_path("models/vectorizer.pkl")
+            )
             self.scan_worker = None
             self.outlook_worker = None  # Initialize worker variable
             self.connectUI()
         except Exception as e:
-            logging.error(f"Error initializing application components: {e}")
+            logging.error(f"Error initializing application components: {e}", exc_info=True)
+
+    @staticmethod
+    def resource_path(relative_path):
+        """Get the absolute path to a resource."""
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, relative_path)
+        return os.path.join(os.path.abspath("."), relative_path)
 
     def connectUI(self):
         try:
@@ -126,16 +176,15 @@ class MuhtasibWatch(Ui_MainWindow):
 
     def download_gmail_attachments(self):
         try:
-            # Clear the results area and get the single Gmail URL from input
             self.attachment_scanner_page.attachment_result_area.setText(
                 "Downloading attachment from Gmail... Please wait."
             )
             gmail_url = self.attachment_scanner_page.attachment_input.toPlainText().strip()
 
             if gmail_url:
+                logging.info(f"Downloading attachment from Gmail URL: {gmail_url}")
                 service = authenticate_gmail()
 
-                # Process a single Gmail URL
                 if "mail.google.com" in gmail_url:
                     msg_id = extract_message_id(gmail_url)
                     if msg_id:
@@ -148,21 +197,31 @@ class MuhtasibWatch(Ui_MainWindow):
                                 time.sleep(1)  # Add a short delay before scanning
                                 scan_result = self.attachment_scanner.scan_file_with_clamav(local_file)
                                 self.display_scan_results(
-                                    f"File: {local_file}\nStatus: {scan_result['status']}\nDetails: {scan_result['details']}\n\n")
+                                    f"File: {local_file}\nStatus: {scan_result['status']}\nDetails: {scan_result['details']}\n\n"
+                                )
                             else:
+                                logging.warning(f"Failed to download attachment from Gmail link: {gmail_url}")
                                 self.attachment_scanner_page.attachment_result_area.setText(
-                                    f"Failed to download attachment from Gmail link: {gmail_url}")
+                                    f"Failed to download attachment from Gmail link: {gmail_url}"
+                                )
                         else:
+                            logging.warning(f"Could not retrieve attachment ID for message: {msg_id}")
                             self.attachment_scanner_page.attachment_result_area.setText(
-                                f"Could not retrieve attachment ID for message: {msg_id}")
+                                f"Could not retrieve attachment ID for message: {msg_id}"
+                            )
                     else:
+                        logging.warning(f"Invalid Gmail link: {gmail_url}. Unable to extract message ID.")
                         self.attachment_scanner_page.attachment_result_area.setText(
-                            f"Invalid Gmail link: {gmail_url}. Unable to extract message ID.")
+                            f"Invalid Gmail link: {gmail_url}. Unable to extract message ID."
+                        )
                 else:
+                    logging.warning("Invalid Gmail URL provided.")
                     self.attachment_scanner_page.attachment_result_area.setText("Please provide a valid Gmail URL.")
             else:
+                logging.warning("No Gmail URL provided.")
                 self.attachment_scanner_page.attachment_result_area.setText("Please enter a valid Gmail URL.")
         except Exception as e:
+            logging.error(f"Error downloading Gmail attachment: {e}", exc_info=True)
             self.attachment_scanner_page.attachment_result_area.setText(f"Error downloading Gmail attachment: {str(e)}")
 
     def download_outlook_attachments(self):
@@ -195,11 +254,17 @@ class MuhtasibWatch(Ui_MainWindow):
         try:
             email_text = self.phishing_analysis_page.email_input.toPlainText().strip()
             if email_text:
+                logging.info("Starting phishing analysis.")
                 prediction = self.phishing_analyzer.predict(email_text)
                 keyword_analysis = self.phishing_analyzer.analyze_keywords(email_text)
                 detailed_report = f"Prediction: {prediction}\n\n{keyword_analysis}"
+                logging.info("Phishing analysis completed successfully.")
                 self.phishing_analysis_page.phishing_result_area.setText(detailed_report)
+            else:
+                logging.warning("No email text provided for phishing analysis.")
+                self.phishing_analysis_page.phishing_result_area.setText("Please enter the email text.")
         except Exception as e:
+            logging.error(f"Error in phishing analysis: {e}", exc_info=True)
             self.phishing_analysis_page.phishing_result_area.setText(f"Error in phishing analysis: {str(e)}")
 
     def display_scan_results(self, result_text):
@@ -244,7 +309,28 @@ class OutlookWorker(QThread):
 
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = MuhtasibWatch()
-    window.show()
-    sys.exit(app.exec_())
+    try:
+        # Optional: Update requirements if needed
+        update_requirements()
+
+        # Log application start
+        logging.info("Application started.")
+
+        # Initialize the application
+        app = QApplication(sys.argv)
+        window = MuhtasibWatch()
+        window.show()
+
+        # Log successful UI display
+        logging.info("Application is running.")
+
+        # Execute the application
+        sys.exit(app.exec_())
+    except Exception as e:
+        # Log any unhandled exceptions with full traceback
+        logging.error(f"Unhandled exception occurred: {e}", exc_info=True)
+
+        # Print error to console and wait for user input to exit
+        print(f"Unhandled exception: {e}")
+        input("Press Enter to exit...")
+

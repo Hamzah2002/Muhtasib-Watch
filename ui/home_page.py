@@ -1,6 +1,17 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt
+import os
+import sys
+
+def resource_path(relative_path):
+    """
+    Get the absolute path to a resource, compatible with PyInstaller.
+    """
+    if hasattr(sys, '_MEIPASS'):
+        # If running as a PyInstaller bundle
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 class HomePage(QWidget):
     def __init__(self):
@@ -44,7 +55,8 @@ class HomePage(QWidget):
 
         url_checker_image = QLabel()
         url_checker_image.setPixmap(
-            QPixmap("resources/manuals/url_checker_example.png").scaledToWidth(600, Qt.SmoothTransformation))
+            QPixmap(resource_path("resources/manuals/url_checker_example.png")).scaledToWidth(600, Qt.SmoothTransformation)
+        )
         url_checker_image.setAlignment(Qt.AlignCenter)
         scroll_area_layout.addWidget(url_checker_image)
 
@@ -65,7 +77,8 @@ class HomePage(QWidget):
 
         dkim_spf_image = QLabel()
         dkim_spf_image.setPixmap(
-            QPixmap("resources/manuals/dkim_spf_example.png").scaledToWidth(600, Qt.SmoothTransformation))
+            QPixmap(resource_path("resources/manuals/dkim_spf_example.png")).scaledToWidth(600, Qt.SmoothTransformation)
+        )
         dkim_spf_image.setAlignment(Qt.AlignCenter)
         scroll_area_layout.addWidget(dkim_spf_image)
 
@@ -90,7 +103,8 @@ class HomePage(QWidget):
         # Image for "Download Gmail Attachments"
         download_gmail_image = QLabel()
         download_gmail_image.setPixmap(
-            QPixmap("resources/manuals/download_gmail_example.png").scaledToWidth(600, Qt.SmoothTransformation))
+            QPixmap(resource_path("resources/manuals/download_gmail_example.png")).scaledToWidth(600, Qt.SmoothTransformation)
+        )
         download_gmail_image.setAlignment(Qt.AlignCenter)
         scroll_area_layout.addWidget(download_gmail_image)
 
@@ -109,7 +123,8 @@ class HomePage(QWidget):
         # Image for "Scan Attachments"
         scan_attachments_image = QLabel()
         scan_attachments_image.setPixmap(
-            QPixmap("resources/manuals/download_link_example.png").scaledToWidth(600, Qt.SmoothTransformation))
+            QPixmap(resource_path("resources/manuals/download_link_example.png")).scaledToWidth(600, Qt.SmoothTransformation)
+        )
         scan_attachments_image.setAlignment(Qt.AlignCenter)
         scroll_area_layout.addWidget(scan_attachments_image)
 

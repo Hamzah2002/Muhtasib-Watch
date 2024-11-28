@@ -1,6 +1,17 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt
+import os
+import sys
+
+def resource_path(relative_path):
+    """
+    Get the absolute path to a resource, compatible with PyInstaller.
+    """
+    if hasattr(sys, '_MEIPASS'):
+        # If running as a PyInstaller bundle
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 class AboutPage(QWidget):
     def __init__(self):
@@ -17,7 +28,8 @@ class AboutPage(QWidget):
 
         # Add logo (centered)
         logo_label = QLabel()
-        pixmap = QPixmap("resources/Logo.png")  # Replace with the actual logo file path
+        logo_path = resource_path("resources/Logo.png")  # Use resource_path to locate the logo file
+        pixmap = QPixmap(logo_path)
         logo_label.setPixmap(pixmap.scaledToWidth(300, Qt.SmoothTransformation))  # Scale the logo to 300px width
         logo_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(logo_label)
