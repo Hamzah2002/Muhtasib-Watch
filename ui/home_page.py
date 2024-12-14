@@ -33,10 +33,94 @@ class HomePage(QWidget):
         welcome_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(welcome_label)
 
-        # Add a scroll area for the user guide
+        # a scroll area for the user guide
         scroll_area = QScrollArea()
         scroll_area_widget = QWidget()
         scroll_area_layout = QVBoxLayout()
+
+        # ClamAV Setup Guide
+        clamav_label = QLabel("🛠️ Setting Up ClamAV for Attachment Scanning")
+        clamav_label.setFont(QFont("Segoe UI", 16, QFont.Bold))
+        clamav_label.setStyleSheet("color: #FF5722; padding: 10px;")
+        scroll_area_layout.addWidget(clamav_label)
+
+        # Step 1 - Download and Install ClamAV
+        download_label = QLabel("1. Download and Install ClamAV")
+        download_label.setFont(QFont("Segoe UI", 14))
+        download_label.setStyleSheet("color: #000000; padding-left: 20px;")
+        scroll_area_layout.addWidget(download_label)
+
+        download_link = QLabel('<a href="https://www.clamav.net/">https://www.clamav.net/</a>')
+        download_link.setOpenExternalLinks(True)
+        download_link.setStyleSheet("color: #1E90FF; padding-left: 40px;")
+        scroll_area_layout.addWidget(download_link)
+
+        # Step 2 - Locating Installation Directory
+        step1_label = QLabel("2. Locate the ClamAV Installation Directory.")
+        step1_label.setFont(QFont("Segoe UI", 14))
+        step1_label.setStyleSheet("color: #000000; padding-left: 20px;")
+        scroll_area_layout.addWidget(step1_label)
+
+        step1_image = QLabel()
+        step1_image.setPixmap(
+            QPixmap(resource_path("resources/manuals/clamav1.png")).scaledToWidth(600, Qt.SmoothTransformation))
+        step1_image.setAlignment(Qt.AlignCenter)
+        scroll_area_layout.addWidget(step1_image)
+
+        # Step 3 - Locate Config Files
+        step2_label = QLabel(
+            "3. Locate 'clamd.conf.example' and 'freshclam.conf.example' in the 'conf_examples' folder.")
+        step2_label.setFont(QFont("Segoe UI", 14))
+        step2_label.setStyleSheet("color: #000000; padding-left: 20px;")
+        scroll_area_layout.addWidget(step2_label)
+
+        step2_image = QLabel()
+        step2_image.setPixmap(
+            QPixmap(resource_path("resources/manuals/clamav2.png")).scaledToWidth(600, Qt.SmoothTransformation))
+        step2_image.setAlignment(Qt.AlignCenter)
+        scroll_area_layout.addWidget(step2_image)
+
+        # Step 4 - Move and Rename Files
+        step3_label = QLabel("4. Cut and Paste These Files to the Parent 'clamav' Folder and Rename Them:")
+        step3_label.setFont(QFont("Segoe UI", 14))
+        step3_label.setStyleSheet("color: #000000; padding-left: 20px;")
+        scroll_area_layout.addWidget(step3_label)
+
+        renamed_files_label = QLabel(
+            "• Rename 'clamd.conf.example' to 'clamd.conf'\n• Rename 'freshclam.conf.example' to 'freshclam.conf'")
+        renamed_files_label.setStyleSheet("color: #000000; padding-left: 40px;")
+        scroll_area_layout.addWidget(renamed_files_label)
+
+        step3_image = QLabel()
+        step3_image.setPixmap(
+            QPixmap(resource_path("resources/manuals/clamav3.png")).scaledToWidth(600, Qt.SmoothTransformation))
+        step3_image.setAlignment(Qt.AlignCenter)
+        scroll_area_layout.addWidget(step3_image)
+
+        # Step 5 - Edit and Save Files
+        step4_label = QLabel("5. Open Both Files and Remove the Line Containing 'Example', Then Save.")
+        step4_label.setFont(QFont("Segoe UI", 14))
+        step4_label.setStyleSheet("color: #000000; padding-left: 20px;")
+        scroll_area_layout.addWidget(step4_label)
+
+        step4_image = QLabel()
+        step4_image.setPixmap(
+            QPixmap(resource_path("resources/manuals/clamav4.png")).scaledToWidth(600, Qt.SmoothTransformation))
+        step4_image.setAlignment(Qt.AlignCenter)
+        scroll_area_layout.addWidget(step4_image)
+
+        # Final Instructions
+        final_instructions = QLabel(
+            "Final Step:\n\n"
+            "• Run 'clamscan.exe' to Update the Database.\n"
+            "• Run 'clamd.exe' to Start the ClamAV Service in the Background."
+        )
+        final_instructions.setFont(QFont("Segoe UI", 14))
+        final_instructions.setStyleSheet("color: #000000; padding-left: 20px;")
+        scroll_area_layout.addWidget(final_instructions)
+
+
+
 
         ### URL Checker Section ###
         url_checker_label = QLabel("🔗 URL Checker - How to Use:")

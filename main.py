@@ -13,9 +13,7 @@ import dkim_spf_validator
 import url_checker
 from outlook_downloader import download_specific_outlook_attachment
 from outlook_downloader import authenticate_outlook
-from setup_clamav import is_clamav_installed, setup_clamav
-import requests
-import pyclamd
+#from setup_clamav import is_clamav_installed, setup_clamav
 import tempfile  # Import tempfile for temporary file handling
 from urllib.parse import urlparse
 from urllib3.util.retry import Retry  # Import Retry for request retries
@@ -24,11 +22,11 @@ from requests.adapters import HTTPAdapter
 
 
 
-if not is_clamav_installed():
-    print("ClamAV is not installed or running. Setting it up...")
-    setup_clamav()
-else:
-    print("ClamAV is installed and running. Proceeding with the application...")
+#if not is_clamav_installed():
+ #   print("ClamAV is not installed or running. Setting it up...")
+  #  setup_clamav()
+#else:
+ #   print("ClamAV is installed and running. Proceeding with the application...")
 
 # Function to get the log file path
 def get_log_path():
@@ -324,9 +322,13 @@ class OutlookWorker(QThread):
             self.result_signal.emit(f"Error during Outlook operation: {str(e)}")
 
 
+
 if __name__ == '__main__':
     try:
         logging.info("Application started.")
+
+        # Ensure ClamAV is running
+       # ensure_clamav_running()
 
         # Create a temporary directory for file handling
         temp_dir = tempfile.mkdtemp(prefix="MuhtasibWatch_")
